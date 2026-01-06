@@ -1,0 +1,32 @@
+name: sinicerita
+description: "A new Flutter project."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- AUTHENTICATION ---
+  supabase_flutter: ^2.8.3
+
+  # --- TOOLS LAINNYA ---
+  flutter_dotenv: ^5.1.0
+  cupertino_icons: ^1.0.8
+  image_picker: ^1.1.2
+  intl: ^0.19.0
+  url_launcher: ^6.3.2
+  http: ^1.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

@@ -1,0 +1,29 @@
+# ... (kode sebelumnya)
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Environment Variables (PENTING: Agar API Key tidak ter-upload)
+.env
+*.env
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+
+# Android
+.gradle/
+local.properties
+**.exe
+**.dll
+
+# Add these to your existing .gitignore
+bin/
+windows/flutter/ephemeral/
+*.pdb
+*.dll

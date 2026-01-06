@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Start di HP (Android)",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "Start di Web (Port 3000)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "--web-port", "3000"
+            ]
+        }
+    ]
+}
