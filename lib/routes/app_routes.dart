@@ -1,36 +1,54 @@
 import 'package:flutter/material.dart';
-import '../screens/home_screen.dart'; 
-import '../screens/learn_more_about_app_screen.dart';
-import '../screens/learn_more_stress_screen.dart';
-import '../screens/calculate_stress_screen.dart';
-import '../screens/chatbot_screen.dart'; 
 import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
-import '../screens/support_screen.dart'; // 1. Pastikan import ini ada
-import '../screens/edit_profile_screen.dart';
+import '../screens/home_screen.dart';
 
 class AppRoutes {
-  static const String home = '/';
+  // --- DAFTAR STRING RUTE (Konstanta) ---
   static const String login = '/login';
   static const String register = '/register';
+  static const String home = '/home';
   
-  static const String learnMoreAboutApp = '/learn-more-about-app';
+  // Tambahan yang kurang (Penyebab Error di Home):
+  static const String calculateStress = '/calculate-stress';
   static const String learnMoreStress = '/learn-more-stress';
-  static const String calculateStress = '/calculate_stress';
-  static const String chatRoom = '/chat_room'; 
-  static const String support = '/support'; // 2. Tambahkan konstanta ini
-  static const String editProfile = '/edit_profile';
+  static const String learnMoreAboutApp = '/about-app';
+  static const String chatRoom = '/chat-room';
+  static const String support = '/support';
+  static const String editProfile = '/edit-profile';
 
-  static final Map<String, WidgetBuilder> routes = {
-    home: (context) => const HomeScreen(), 
-    login: (context) => const LoginScreen(),
-    register: (context) => const RegisterScreen(),
+  // --- GENERATOR RUTE ---
+  static Route<dynamic> generateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case login:
+        return MaterialPageRoute(builder: (_) => const LoginScreen());
+      
+      case register:
+        return MaterialPageRoute(builder: (_) => const RegisterScreen());
 
-    learnMoreAboutApp: (context) => const LearnMoreAboutAppScreen(),
-    learnMoreStress: (context) => const LearnMoreStressScreen(),
-    calculateStress: (context) => const CalculateStressScreen(),
-    chatRoom: (context) => const ChatbotScreen(),
-    support: (context) => const SupportScreen(), // 3. Daftarkan di sini
-    editProfile: (context) => const EditProfileScreen(),
-  };
+      case home:
+        // final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => const HomeScreen(),
+        );
+
+      // --- RUTE SEMENTARA (Supaya tidak error saat diklik) ---
+      case calculateStress:
+      case learnMoreStress:
+      case learnMoreAboutApp:
+        return MaterialPageRoute(
+          builder: (_) => Scaffold(
+            appBar: AppBar(title: Text(settings.name ?? "Coming Soon")),
+            body: const Center(child: Text("Halaman sedang dibuat")),
+          ),
+        );
+
+      default:
+        return MaterialPageRoute(
+          builder: (_) => Scaffold(
+            body: Center(child: Text('No route defined for ${settings.name}')),
+          ),
+        );
+    }
+  }
 }

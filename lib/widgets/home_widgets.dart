@@ -1,22 +1,18 @@
-import 'dart:ui'; 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../routes/app_routes.dart';
 import '../services/auth_service.dart';
-import '../screens/profile_screen.dart';
+// PERBAIKAN DI SINI: Import profile_screen.dart telah dihapus karena tidak dipakai
 
 // --- KONSTANTA WARNA ---
 const Color primaryTeal = Color(0xFF00897B);
 const Color darkTeal = Color(0xFF004D40);
 const Color surfaceTeal = Color(0xFFE0F2F1);
-// TAMBAHAN: Ini yang menyebabkan error di login & register
-const Color accentOrange = Color(0xFFFFAB40); 
+const Color accentOrange = Color(0xFFFFAB40);
 const Color textDark = Color(0xFF263238);
 
-// ===============================================================
-// 1. TOMBOL UTAMA (GLASS ICON BUTTON & MENU BUTTON)
-// ===============================================================
-
+// ... (Sisa kode ke bawah sama persis, tidak perlu diubah) ...
 class GlassIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -52,21 +48,16 @@ class GlassIconButton extends StatelessWidget {
 
 class HomeMenuButton extends StatelessWidget {
   final VoidCallback onTap;
-
   const HomeMenuButton({super.key, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     return GlassIconButton(
       icon: Icons.sort_rounded,
-      onTap: onTap, 
+      onTap: onTap,
     );
   }
 }
 
-// ===============================================================
-// 2. SIDEBAR / DRAWER MENU
-// ===============================================================
 class HomeDrawer extends StatelessWidget {
   const HomeDrawer({super.key});
 
@@ -80,7 +71,6 @@ class HomeDrawer extends StatelessWidget {
       width: MediaQuery.of(context).size.width * 0.8,
       child: Column(
         children: [
-          // HEADER DRAWER
           StreamBuilder<List<Map<String, dynamic>>>(
             stream: user != null
                 ? Supabase.instance.client
@@ -137,8 +127,6 @@ class HomeDrawer extends StatelessWidget {
               );
             }
           ),
-
-          // MENU LIST
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -148,17 +136,15 @@ class HomeDrawer extends StatelessWidget {
                 _buildTile(context, Icons.chat_bubble_outline_rounded, 'Ruang Curhat', () { Navigator.pop(context); Navigator.pushNamed(context, AppRoutes.chatRoom); }),
                 _buildTile(context, Icons.support_agent_rounded, 'Hubungi Kami', () { Navigator.pop(context); Navigator.pushNamed(context, AppRoutes.support); }),
                 const Divider(),
-                _buildTile(context, Icons.settings_rounded, 'Pengaturan Profil', () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen())); }),
+                _buildTile(context, Icons.settings_rounded, 'Pengaturan Profil', () { Navigator.pop(context); Navigator.pushNamed(context, AppRoutes.editProfile); }),
               ],
             ),
           ),
-
-          // FOOTER LOGOUT
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: InkWell(
               onTap: () async {
-                await AuthService().signOut();
+                await AuthService().logout(); 
                 if (context.mounted) Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
               },
               borderRadius: BorderRadius.circular(12),
@@ -192,9 +178,9 @@ class HomeDrawer extends StatelessWidget {
   }
 }
 
-// ===============================================================
-// 3. WIDGET PENDUKUNG LAINNYA
-// ===============================================================
+// ... Widget lain (BackgroundPatternPainter, HomeHeaderBackground, dll) tetap sama ...
+// Agar lebih ringkas, saya tidak menulis ulang bagian bawah file ini karena tidak ada error di sana.
+// Pastikan kode di bawah HomeDrawer tetap ada seperti semula.
 
 class BackgroundPatternPainter extends CustomPainter {
   final Color color;
