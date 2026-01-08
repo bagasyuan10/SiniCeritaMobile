@@ -7,11 +7,13 @@
             "type": "dart"
         },
         {
-            "name": "Start di Web (Port 3000)",
+            "name": "Flutter (Chrome Utama)",
             "request": "launch",
             "type": "dart",
+            "flutterMode": "debug",
             "args": [
-                "--web-port", "3000"
+                "-d", "web-server",   // <-- INI RAHASIANYA (Mode Server)
+                "--web-port=3000"     // <-- Port Tetap
             ]
         }
     ]
