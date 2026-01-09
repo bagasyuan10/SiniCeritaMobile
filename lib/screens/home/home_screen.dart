@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../routes/app_routes.dart';
-import '../widgets/home_widgets.dart'; 
-import '../widgets/mood_overlay.dart' hide primaryTeal; 
+import '../../routes/app_routes.dart';
+import '../../widgets/home_widgets.dart'; 
+import '../mood_overlay.dart' hide primaryTeal; 
 
 // IMPORT FILE CHATBOT (Pastikan path-nya sesuai)
-import '../screens/chatbot_screen.dart';
+import '../chatbot_screen.dart';
 
 // Definisi warna lokal agar tidak error jika tidak ada di home_widgets
 const Color primaryTeal = Color(0xFF00897B);

@@ -40,12 +40,9 @@ class AuthService {
       // STRATEGI 1: KHUSUS WEB (Jauh lebih stabil)
       // ==========================================
       if (kIsWeb) {
-        await _supabase.auth.signInWithOAuth(
+        await Supabase.instance.client.auth.signInWithOAuth(
           OAuthProvider.google,
-          // UBAH DARI localhost JADI 127.0.0.1
-          redirectTo: 'http://127.0.0.1:3000', 
-          scopes: 'openid profile email', 
-          queryParams: {'access_type': 'offline', 'prompt': 'consent'},
+          redirectTo: 'http://localhost:3000',
         );
         return null; 
       }
