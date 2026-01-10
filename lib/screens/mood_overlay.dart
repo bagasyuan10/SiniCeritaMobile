@@ -1,9 +1,16 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // 1. Pastikan import ini ada
+import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Konstanta warna
-const Color primaryTeal = Color(0xFF00897B);
+// Definisi Mood Data
+class MoodData {
+  final String emoji;
+  final String label;
+  final Color color;
+
+  const MoodData(this.emoji, this.label, this.color);
+}
 
 class MoodOverlay extends StatefulWidget {
   final VoidCallback onDismiss;
@@ -14,193 +21,163 @@ class MoodOverlay extends StatefulWidget {
   State<MoodOverlay> createState() => _MoodOverlayState();
 }
 
-class _MoodOverlayState extends State<MoodOverlay> {
+class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStateMixin {
   int? _selectedMoodIndex;
-  bool _isLoading = false; // 2. Tambahkan state untuk loading
+  bool _isLoading = false;
+  bool _isSuccess = false;
+  late AnimationController _controller;
 
-  final List<Map<String, String>> _moods = [
-    {'emoji': '😢', 'label': 'Sedih'},
-    {'emoji': '😐', 'label': 'Biasa'},
-    {'emoji': '😊', 'label': 'Senang'},
-    {'emoji': '😁', 'label': 'Bahagia'},
+  final List<MoodData> _moods = [
+    const MoodData('😢', 'Sedih', Color(0xFF607D8B)), // Blue Grey
+    const MoodData('😐', 'Biasa', Color(0xFF8D6E63)), // Brownish
+    const MoodData('😊', 'Senang', Color(0xFF26A69A)), // Teal
+    const MoodData('😁', 'Bahagia', Color(0xFFFFB74D)), // Orange
   ];
 
-  // 3. Fungsi untuk menyimpan ke Supabase
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Color get _currentColor {
+    if (_selectedMoodIndex == null) return Colors.grey.shade900;
+    return _moods[_selectedMoodIndex!].color;
+  }
+
   Future<void> _submitMood() async {
     if (_selectedMoodIndex == null) return;
-
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final user = Supabase.instance.client.auth.currentUser;
+      // Simulasi delay untuk UX
+      await Future.delayed(const Duration(milliseconds: 800));
 
-      if (user == null) {
-        // Handle jika user belum login (jarang terjadi di home screen, tapi jaga-jaga)
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("User tidak ditemukan, silakan login ulang.")),
-          );
-        }
-        return;
+      if (user != null) {
+        final selectedData = _moods[_selectedMoodIndex!];
+        await Supabase.instance.client.from('daily_moods').insert({
+          'user_id': user.id,
+          'mood_label': selectedData.label,
+          'mood_emoji': selectedData.emoji,
+        });
       }
 
-      final selectedData = _moods[_selectedMoodIndex!];
-
-      // Kirim data ke tabel 'daily_moods'
-      await Supabase.instance.client.from('daily_moods').insert({
-        'user_id': user.id, // Penting: ID user yang login
-        'mood_label': selectedData['label'],
-        'mood_emoji': selectedData['emoji'],
-        // 'created_at': akan otomatis terisi oleh default database
-      });
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Mood hari ini tersimpan! ${selectedData['emoji']}"),
-            backgroundColor: primaryTeal,
-          ),
-        );
-        // Panggil onDismiss setelah sukses
-        widget.onDismiss(); 
+        HapticFeedback.heavyImpact();
+        setState(() {
+          _isLoading = false;
+          _isSuccess = true;
+        });
+
+        await Future.delayed(const Duration(milliseconds: 1000));
+        widget.onDismiss();
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Gagal menyimpan mood: $e"), backgroundColor: Colors.red),
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: Stack(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
         children: [
-          // 1. BACKGROUND BLUR
-          GestureDetector(
-            onTap: () {}, 
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.6),
+          // 1. DYNAMIC AMBIENT BACKGROUND
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  _currentColor.withValues(alpha: 0.4),
+                  Colors.black.withValues(alpha: 0.8),
+                ],
               ),
             ),
           ),
-          
-          // 2. KONTEN DI TENGAH
+
+          // 2. GLASS BLUR
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: const SizedBox.expand(),
+          ),
+
+          // 3. MAIN CONTENT
           Center(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  )
-                ],
-              ),
+            child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    "Apa kabar perasaanmu?",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 22, 
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF2D3142),
+                  SlideTransition(
+                    position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+                      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack)),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Pilih ikon yang mewakili harimu.",
-                    style: TextStyle(color: Colors.grey, fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 30),
-                  
-                  // Grid Pilihan Mood
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(_moods.length, (index) {
-                      bool isSelected = _selectedMoodIndex == index;
-                      return GestureDetector(
-                        // Disable pemilihan saat loading
-                        onTap: _isLoading ? null : () => setState(() => _selectedMoodIndex = index),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOutBack,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: isSelected ? primaryTeal.withValues(alpha: 0.15) : Colors.transparent,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected ? primaryTeal : Colors.transparent,
-                              width: 2.5,
-                            ),
-                          ),
-                          child: Text(
-                            _moods[index]['emoji']!, 
-                            style: TextStyle(fontSize: isSelected ? 38 : 32),
-                          ),
+                    child: FadeTransition(
+                      opacity: CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5)),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(40),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
+                            )
+                          ],
                         ),
-                      );
-                    }),
-                  ),
-                  
-                  const SizedBox(height: 10),
-                  Text(
-                    _selectedMoodIndex != null 
-                        ? _moods[_selectedMoodIndex!]['label']! 
-                        : "...",
-                    style: const TextStyle(
-                      fontSize: 14, 
-                      fontWeight: FontWeight.w600, 
-                      color: primaryTeal
-                    ),
-                  ),
-                  const SizedBox(height: 25),
-                  
-                  // Tombol Lanjut
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      // Panggil _submitMood saat ditekan
-                      onPressed: (_selectedMoodIndex == null || _isLoading) 
-                          ? null 
-                          : _submitMood,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryTeal,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.grey[300],
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        child: Column(
+                          children: [
+                            const Text(
+                              "How are you feeling?",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Check in with yourself right now.",
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+                            ),
+                            const SizedBox(height: 40),
+
+                            // MOOD GRID
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: List.generate(_moods.length, (index) => _buildStaggeredMoodItem(index)),
+                            ),
+
+                            const SizedBox(height: 40),
+
+                            // SMART BUTTON
+                            _buildSmartButton(),
+                          ],
+                        ),
                       ),
-                      child: _isLoading 
-                        ? const SizedBox(
-                            width: 24, 
-                            height: 24, 
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                          )
-                        : const Text(
-                            "Lanjut ke Home", 
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
                     ),
                   ),
                 ],
@@ -208,6 +185,132 @@ class _MoodOverlayState extends State<MoodOverlay> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStaggeredMoodItem(int index) {
+    final double start = 0.3 + (index * 0.1);
+    final double end = start + 0.4;
+
+    return SlideTransition(
+      position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+        CurvedAnimation(
+          parent: _controller,
+          curve: Interval(start, end > 1.0 ? 1.0 : end, curve: Curves.elasticOut),
+        ),
+      ),
+      child: FadeTransition(
+        opacity: CurvedAnimation(
+          parent: _controller,
+          curve: Interval(start, end > 1.0 ? 1.0 : end, curve: Curves.easeOut),
+        ),
+        child: _buildMoodItem(index),
+      ),
+    );
+  }
+
+  Widget _buildMoodItem(int index) {
+    bool isSelected = _selectedMoodIndex == index;
+    final mood = _moods[index];
+
+    return GestureDetector(
+      onTap: _isLoading || _isSuccess ? null : () {
+        HapticFeedback.lightImpact();
+        setState(() => _selectedMoodIndex = index);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutBack,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? mood.color : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
+            width: isSelected ? 2 : 1,
+          ),
+          // FIX 1: BoxShadow Selalu ada, tapi transparan jika tidak dipilih
+          boxShadow: [
+            BoxShadow(
+              color: isSelected ? mood.color.withValues(alpha: 0.6) : Colors.transparent,
+              blurRadius: isSelected ? 20 : 0,
+              spreadRadius: isSelected ? 2 : 0,
+            )
+          ],
+        ),
+        child: Column(
+          children: [
+            AnimatedScale(
+              scale: isSelected ? 1.1 : 1.0,
+              duration: const Duration(milliseconds: 300),
+              child: Text(mood.emoji, style: const TextStyle(fontSize: 36)),
+            ),
+            const SizedBox(height: 8),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.normal,
+                color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.6),
+              ),
+              child: Text(mood.label),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmartButton() {
+    bool isEnabled = _selectedMoodIndex != null && !_isLoading && !_isSuccess;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      height: 60,
+      width: _isLoading || _isSuccess ? 60 : double.infinity,
+      decoration: BoxDecoration(
+        color: _isSuccess
+            ? Colors.greenAccent
+            : (isEnabled ? Colors.white : Colors.white.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(30),
+        // FIX 2: BoxShadow Selalu ada, tapi transparan jika button disabled
+        boxShadow: [
+          BoxShadow(
+            color: isEnabled ? Colors.white.withValues(alpha: 0.2) : Colors.transparent,
+            blurRadius: isEnabled ? 15 : 0,
+            offset: isEnabled ? const Offset(0, 5) : Offset.zero,
+          )
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(30),
+          onTap: isEnabled ? _submitMood : null,
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5),
+                    )
+                  : _isSuccess
+                      ? const Icon(Icons.check, color: Colors.black, size: 30, key: ValueKey('success'))
+                      : Text(
+                          "Continue",
+                          key: const ValueKey('text'),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isEnabled ? Colors.black : Colors.white.withValues(alpha: 0.3),
+                          ),
+                        ),
+            ),
+          ),
+        ),
       ),
     );
   }

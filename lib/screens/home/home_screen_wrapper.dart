@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../mood_check_in_screen.dart';
+import '../mood_overlay.dart';
 import 'home_screen.dart';
 
 class HomeScreenWrapper extends StatefulWidget {
@@ -11,7 +11,7 @@ class HomeScreenWrapper extends StatefulWidget {
 }
 
 class _HomeScreenWrapperState extends State<HomeScreenWrapper> {
-  bool _hasCheckedMood = false;
+  bool _showMoodOverlay = true;
 
   @override
   Widget build(BuildContext context) {
@@ -19,11 +19,14 @@ class _HomeScreenWrapperState extends State<HomeScreenWrapper> {
       children: [
         const HomeScreen(),
 
-        if (!_hasCheckedMood)
-          MoodCheckInScreen(
-            onComplete: () {
+        // ✅ Mood Overlay hanya tampil sekali setelah login
+        if (_showMoodOverlay)
+          MoodOverlay(
+            onDismiss: () {
               if (!mounted) return;
-              setState(() => _hasCheckedMood = true);
+              setState(() {
+                _showMoodOverlay = false;
+              });
             },
           ),
       ],

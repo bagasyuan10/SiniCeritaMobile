@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/home_widgets.dart'; 
-import '../mood_overlay.dart' hide primaryTeal; 
+import 'package:sinicerita/screens/mood_overlay.dart';
 
 // IMPORT FILE CHATBOT (Pastikan path-nya sesuai)
 import '../chatbot_screen.dart';

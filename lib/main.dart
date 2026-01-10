@@ -8,7 +8,7 @@ Future<void> main() async {
 
   await Supabase.initialize(
     url: 'https://puulfsptvvhdcijbikqr.supabase.co',
-    anonKey: 'YOUR_ANON_KEY',
+    anonKey: 'sb_publishable_-NLBLD86vdP7I4yqHu6cGQ_wGMPWrWe',
   );
 
   // 🔑 WAJIB untuk Flutter Web OAuth (Google Login)

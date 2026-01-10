@@ -1,95 +1,94 @@
-import 'package:flutter/foundation.dart'; // WAJIB ADA
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart' as gs;
 
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  // ID CLIENT (Hanya dipakai untuk HP/Android sekarang)
-  static const String _webClientId = '955427922283-htl9ue0j549hlpd1c34itppuurojks90.apps.googleusercontent.com';
+  // Client ID Google (dipakai untuk Android / iOS)
+  static const String _googleClientId =
+      '955427922283-htl9ue0j549hlpd1c34itppuurojks90.apps.googleusercontent.com';
 
-  // --- LOGIN EMAIL ---
-  Future<String?> login({required String email, required String password}) async {
+  // ================= EMAIL LOGIN =================
+  Future<String?> login({
+    required String email,
+    required String password,
+  }) async {
     try {
-      await _supabase.auth.signInWithPassword(email: email, password: password);
+      await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
       return null;
     } on AuthException catch (e) {
       return e.message;
     } catch (e) {
-      return "Error: $e";
+      return e.toString();
     }
   }
 
-  // --- REGISTER EMAIL ---
-  Future<String?> register({required String email, required String password}) async {
+  // ================= EMAIL REGISTER =================
+  Future<String?> register({
+    required String email,
+    required String password,
+  }) async {
     try {
-      await _supabase.auth.signUp(email: email, password: password);
+      await _supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
       return null;
     } on AuthException catch (e) {
       return e.message;
     } catch (e) {
-      return "Error: $e";
+      return e.toString();
     }
   }
 
-  // --- GOOGLE SIGN IN (FINAL FIX) ---
+  // ================= GOOGLE LOGIN =================
   Future<String?> signInWithGoogle() async {
     try {
-      
-      // ==========================================
-      // STRATEGI 1: KHUSUS WEB (Jauh lebih stabil)
-      // ==========================================
+      // ---------- WEB ----------
       if (kIsWeb) {
-        await Supabase.instance.client.auth.signInWithOAuth(
+        await _supabase.auth.signInWithOAuth(
           OAuthProvider.google,
-          redirectTo: 'http://localhost:3000',
+          redirectTo: Uri.base.toString(), // 🔑 WAJIB
         );
-        return null; 
+        return null;
       }
 
-      // ==========================================
-      // STRATEGI 2: KHUSUS ANDROID / IOS (HP)
-      // ==========================================
-      final gs.GoogleSignIn googleSignIn = gs.GoogleSignIn(
+      // ---------- ANDROID / IOS ----------
+      final googleSignIn = gs.GoogleSignIn(
+        clientId: _googleClientId,
+        serverClientId: _googleClientId,
         scopes: ['email', 'profile'],
-        clientId: _webClientId,
-        serverClientId: _webClientId, // Di HP ini wajib ada
       );
-      
-      final gs.GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      final googleUser = await googleSignIn.signIn();
       if (googleUser == null) return "Login dibatalkan user.";
 
-      final gs.GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final accessToken = googleAuth.accessToken;
-      final idToken = googleAuth.idToken;
-
-      if (accessToken == null || idToken == null) {
+      final googleAuth = await googleUser.authentication;
+      if (googleAuth.idToken == null) {
         return "Gagal mendapatkan token Google.";
       }
 
-      final AuthResponse response = await _supabase.auth.signInWithIdToken(
+      await _supabase.auth.signInWithIdToken(
         provider: OAuthProvider.google,
-        idToken: idToken,
-        accessToken: accessToken,
+        idToken: googleAuth.idToken!,
+        accessToken: googleAuth.accessToken,
       );
 
-      if (response.user != null) {
-        return null; 
-      } else {
-        return "Gagal login ke Supabase.";
-      }
-
+      return null;
     } catch (e) {
-      debugPrint("Error Google: $e");
-      return "Error: $e";
+      debugPrint("Google Login Error: $e");
+      return e.toString();
     }
   }
 
-  // --- LOGOUT ---
+  // ================= LOGOUT =================
   Future<void> logout() async {
     if (!kIsWeb) {
-        final gs.GoogleSignIn googleSignIn = gs.GoogleSignIn(clientId: _webClientId);
-        await googleSignIn.signOut();
+      await gs.GoogleSignIn(clientId: _googleClientId).signOut();
     }
     await _supabase.auth.signOut();
   }
