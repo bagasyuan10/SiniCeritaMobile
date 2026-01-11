@@ -55,12 +55,12 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
   }
 
   Future<void> _submitMood() async {
-    if (_selectedMoodIndex == null) return;
+    if (_selectedMoodIndex == null || _isLoading || _isSuccess) return;
     setState(() => _isLoading = true);
 
     try {
       final user = Supabase.instance.client.auth.currentUser;
-      // Simulasi delay untuk UX
+      
       await Future.delayed(const Duration(milliseconds: 800));
 
       if (user != null) {
@@ -83,10 +83,11 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
         widget.onDismiss();
       }
     } catch (e) {
+      debugPrint("ERROR SUPABASE: $e");
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+          SnackBar(content: Text("Gagal: $e"), backgroundColor: Colors.red),
         );
       }
     }
@@ -98,7 +99,7 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // 1. DYNAMIC AMBIENT BACKGROUND
+          // Background Gradient
           AnimatedContainer(
             duration: const Duration(milliseconds: 800),
             curve: Curves.easeInOut,
@@ -113,14 +114,12 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
               ),
             ),
           ),
-
-          // 2. GLASS BLUR
+          // Glass Blur
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: const SizedBox.expand(),
           ),
-
-          // 3. MAIN CONTENT
+          // Content
           Center(
             child: SingleChildScrollView(
               child: Column(
@@ -142,7 +141,7 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 30,
+                              blurRadius: 30.0,
                               offset: const Offset(0, 10),
                             )
                           ],
@@ -152,10 +151,7 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
                             const Text(
                               "How are you feeling?",
                               style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
+                                fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -164,15 +160,12 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
                               style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
                             ),
                             const SizedBox(height: 40),
-
                             // MOOD GRID
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: List.generate(_moods.length, (index) => _buildStaggeredMoodItem(index)),
                             ),
-
                             const SizedBox(height: 40),
-
                             // SMART BUTTON
                             _buildSmartButton(),
                           ],
@@ -192,19 +185,12 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
   Widget _buildStaggeredMoodItem(int index) {
     final double start = 0.3 + (index * 0.1);
     final double end = start + 0.4;
-
     return SlideTransition(
       position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-        CurvedAnimation(
-          parent: _controller,
-          curve: Interval(start, end > 1.0 ? 1.0 : end, curve: Curves.elasticOut),
-        ),
+        CurvedAnimation(parent: _controller, curve: Interval(start, end > 1.0 ? 1.0 : end, curve: Curves.elasticOut)),
       ),
       child: FadeTransition(
-        opacity: CurvedAnimation(
-          parent: _controller,
-          curve: Interval(start, end > 1.0 ? 1.0 : end, curve: Curves.easeOut),
-        ),
+        opacity: CurvedAnimation(parent: _controller, curve: Interval(start, end > 1.0 ? 1.0 : end, curve: Curves.easeOut)),
         child: _buildMoodItem(index),
       ),
     );
@@ -213,7 +199,7 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
   Widget _buildMoodItem(int index) {
     bool isSelected = _selectedMoodIndex == index;
     final mood = _moods[index];
-
+    
     return GestureDetector(
       onTap: _isLoading || _isSuccess ? null : () {
         HapticFeedback.lightImpact();
@@ -221,7 +207,7 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutBack,
+        curve: Curves.easeOut, // ✅ FIXED: Pakai easeOut biar shadow gak error
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected ? mood.color : Colors.white.withValues(alpha: 0.05),
@@ -230,12 +216,11 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
             color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
             width: isSelected ? 2 : 1,
           ),
-          // FIX 1: BoxShadow Selalu ada, tapi transparan jika tidak dipilih
           boxShadow: [
             BoxShadow(
               color: isSelected ? mood.color.withValues(alpha: 0.6) : Colors.transparent,
-              blurRadius: isSelected ? 20 : 0,
-              spreadRadius: isSelected ? 2 : 0,
+              blurRadius: isSelected ? 20.0 : 0.0,
+              spreadRadius: isSelected ? 2.0 : 0.0,
             )
           ],
         ),
@@ -244,6 +229,7 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
             AnimatedScale(
               scale: isSelected ? 1.1 : 1.0,
               duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutBack, 
               child: Text(mood.emoji, style: const TextStyle(fontSize: 36)),
             ),
             const SizedBox(height: 8),
@@ -262,56 +248,55 @@ class _MoodOverlayState extends State<MoodOverlay> with SingleTickerProviderStat
     );
   }
 
+  // ✅ FIXED: Menggunakan LayoutBuilder agar animasi width tidak crash
   Widget _buildSmartButton() {
     bool isEnabled = _selectedMoodIndex != null && !_isLoading && !_isSuccess;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      height: 60,
-      width: _isLoading || _isSuccess ? 60 : double.infinity,
-      decoration: BoxDecoration(
-        color: _isSuccess
-            ? Colors.greenAccent
-            : (isEnabled ? Colors.white : Colors.white.withValues(alpha: 0.1)),
-        borderRadius: BorderRadius.circular(30),
-        // FIX 2: BoxShadow Selalu ada, tapi transparan jika button disabled
-        boxShadow: [
-          BoxShadow(
-            color: isEnabled ? Colors.white.withValues(alpha: 0.2) : Colors.transparent,
-            blurRadius: isEnabled ? 15 : 0,
-            offset: isEnabled ? const Offset(0, 5) : Offset.zero,
-          )
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(30),
-          onTap: isEnabled ? _submitMood : null,
-          child: Center(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5),
-                    )
-                  : _isSuccess
-                      ? const Icon(Icons.check, color: Colors.black, size: 30, key: ValueKey('success'))
-                      : Text(
-                          "Continue",
-                          key: const ValueKey('text'),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isEnabled ? Colors.black : Colors.white.withValues(alpha: 0.3),
-                          ),
-                        ),
+    
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          height: 60,
+          // Menggunakan constraints.maxWidth alih-alih double.infinity
+          width: _isLoading || _isSuccess ? 60 : constraints.maxWidth,
+          decoration: BoxDecoration(
+            color: _isSuccess ? Colors.greenAccent : (isEnabled ? Colors.white : Colors.white.withValues(alpha: 0.1)),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: isEnabled ? Colors.white.withValues(alpha: 0.2) : Colors.transparent,
+                blurRadius: isEnabled ? 15.0 : 0.0,
+                offset: isEnabled ? const Offset(0, 5) : Offset.zero,
+              )
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(30),
+              onTap: isEnabled ? _submitMood : null,
+              child: Center(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _isLoading
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
+                      : _isSuccess
+                          ? const Icon(Icons.check, color: Colors.black, size: 30, key: ValueKey('success'))
+                          : Text(
+                              "Continue",
+                              key: const ValueKey('text'),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isEnabled ? Colors.black : Colors.white.withValues(alpha: 0.3),
+                              ),
+                            ),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }
     );
   }
 }

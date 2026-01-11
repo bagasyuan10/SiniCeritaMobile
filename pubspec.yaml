@@ -12,16 +12,18 @@ dependencies:
   flutter_web_plugins:
     sdk: flutter
 
-  # --- AUTHENTICATION ---
+  # --- AUTHENTICATION & DATABASE (SUPABASE) ---
   supabase_flutter: ^2.0.0
 
-  # --- TOOLS LAINNYA ---
-  flutter_dotenv: ^5.1.0
+  # --- NETWORK & ENV (Chatbot & API) ---
+  http: ^1.2.0           # Untuk request API
+  flutter_dotenv: ^5.1.0 # Untuk baca .env
+
+  # --- UI & UTILS ---
   cupertino_icons: ^1.0.8
   image_picker: ^1.1.2
-  intl: ^0.19.0
+  intl: ^0.19.0          # Cukup ditulis SATU kali di sini
   url_launcher: ^6.3.2
-  http: ^1.6.0
   google_sign_in: ^6.2.0
 
 dev_dependencies:
@@ -31,6 +33,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
   assets:
     - assets/images/
+    - .env
